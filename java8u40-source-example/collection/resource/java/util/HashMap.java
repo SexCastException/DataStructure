@@ -230,13 +230,13 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
 
     /**
-     * 默认的容量大小
+     * 默认表的容量值
      * The default initial capacity - MUST be a power of two.
      */
     static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
 
     /**
-     * 链表数组的最大容量，如果用户指定的容量大小超过这个值，则默认使用最大的值，1073741824 = 2的30次方
+     * 链表数组的最大容量，如果调用者指定的容量值超过这个值，则默认使用最大的值，1073741824 = 2的30次方
      *
      * The maximum capacity, used if a higher value is implicitly specified
      * by either of the constructors with arguments.
@@ -405,7 +405,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     transient Set<Map.Entry<K,V>> entrySet;
 
     /**
-     * 链表数组的大小，即元素的实际个数
+     * 键值对映射的个数
      * The number of key-value mappings contained in this map.
      */
     transient int size;
@@ -685,7 +685,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         }
         // modCount用来迭代是否failfast使用
         ++modCount;
-        // 4、代码走至此则代表新增元素，数组大小+1，并判断大小如果大于阈值，则进行扩容
+        // 4、代码走至此则代表新增元素，size++，并判断size如果大于阈值，则进行扩容
         if (++size > threshold) {
             resize();   // 扩容
         }
@@ -694,6 +694,13 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     }
 
     /**
+     * 功能：对链表数组进行初始化或者扩容，如果是扩容则重新计算旧表数据的下标并赋值新表
+     *
+     * 步骤：
+     * 1、根据各个场景先对新容量（newCap）和新阈值（newThr）初始化或者重新赋值
+     * 2、把新容量和新阈值更新table和threshold
+     * 3、重新计算各个元素的下标并赋值给新表（只有扩容的时候才会走到此步骤）
+     *
      * Initializes or doubles table size.  If null, allocates in
      * accord with initial capacity target held in field threshold.
      * Otherwise, because we are using power-of-two expansion, the
@@ -707,9 +714,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
         int oldThr = threshold;
         int newCap, newThr = 0;
-        // 表已经被初始化之后的操作
+        // 1、初始化或者重新复制newCap和newThr的值
+        // 发生场景：表已经被初始化之后的操作
         if (oldCap > 0) {
-            // 如果表数组容量大于最大链表数组的值(1<<30)，则表不进行扩容，因为Integer.MAX_VALUE>MAXIMUM_CAPACITY
+            // 如果表数组容量大于链表数组最大的容量值(1<<30)，则表不进行扩容，因为Integer.MAX_VALUE>MAXIMUM_CAPACITY
             if (oldCap >= MAXIMUM_CAPACITY) {
                 threshold = Integer.MAX_VALUE;
                 return oldTab;
@@ -720,9 +728,11 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 newThr = oldThr << 1; // double threshold
             }
         }
-        //
-        else if (oldThr > 0) // initial capacity was placed in threshold
+        // 发生场景：调用者调用有参构造函数的时候初始化threshold，且链表数组还没有被初始化的时候
+        else if (oldThr > 0) { // initial capacity was placed in threshold
             newCap = oldThr;
+        }
+        // 发生场景：调用者调用无参构造函数，且链表数组还没有初始化的时候
         else {               // zero initial threshold signifies using defaults
             newCap = DEFAULT_INITIAL_CAPACITY;
             newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
@@ -732,37 +742,48 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
                       (int)ft : Integer.MAX_VALUE);
         }
+
+        // 2、对新容量和新阈值，对threshold和table赋值
         threshold = newThr;
         @SuppressWarnings({"rawtypes","unchecked"})
             Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
         table = newTab;
+        // 3、旧表的数据重新计算索引值并存入新表中
         if (oldTab != null) {
             for (int j = 0; j < oldCap; ++j) {
                 Node<K,V> e;
                 if ((e = oldTab[j]) != null) {
                     oldTab[j] = null;
-                    if (e.next == null)
+                    if (e.next == null) {
                         newTab[e.hash & (newCap - 1)] = e;
-                    else if (e instanceof TreeNode)
+                    }
+                    // 当前下标的数据是以红黑树的形式保存
+                    else if (e instanceof TreeNode) {
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
-                    else { // preserve order
+                    }
+                    else { // preserve order.当前下标的数据是以链表的形式保存
                         Node<K,V> loHead = null, loTail = null;
                         Node<K,V> hiHead = null, hiTail = null;
                         Node<K,V> next;
                         do {
+                            // 循环遍历链表
                             next = e.next;
                             if ((e.hash & oldCap) == 0) {
-                                if (loTail == null)
+                                if (loTail == null) {
                                     loHead = e;
-                                else
+                                }
+                                else {
                                     loTail.next = e;
+                                }
                                 loTail = e;
                             }
                             else {
-                                if (hiTail == null)
+                                if (hiTail == null) {
                                     hiHead = e;
-                                else
+                                }
+                                else {
                                     hiTail.next = e;
+                                }
                                 hiTail = e;
                             }
                         } while ((e = next) != null);
@@ -885,6 +906,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     }
 
     /**
+     * 步骤：
+     * 1、size = 0
+     * 2、遍历链表数组，把每个下标的数据都置为null
+     *
      * Removes all of the mappings from this map.
      * The map will be empty after this call returns.
      */
