@@ -696,12 +696,12 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * 功能：对链表数组进行初始化或者扩容，如果是扩容则重新计算旧表数据的下标并赋值新表
      *
-     * JDK8在 resize 的时候，通过巧妙的设计，减少了 rehash 的性能消耗。
-     *
      * 步骤：
      * 1、根据各个场景先对新容量（newCap）和新阈值（newThr）初始化或者重新赋值
      * 2、把新容量和新阈值更新table和threshold
      * 3、重新计算各个元素的下标并赋值给新表（只有扩容的时候才会走到此步骤）
+     *
+     * JDK8在 resize 时候，通过原始位置加原数组长度的方法计算索引下标，减少了 rehash 的性能消耗，也为JDK8与JDK7的不同之处。
      *
      * Initializes or doubles table size.  If null, allocates in
      * accord with initial capacity target held in field threshold.
@@ -770,7 +770,23 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         do {
                             // 循环遍历链表
                             next = e.next;
-                            // (e.hash & oldCap)：为旧bucket的索引值
+                            // notice：(e.hash & oldCap)而不是(e.hash & oldCap - 1)
+
+                            /*
+                            * (e.hash & oldCap) 得到的是：元素的在数组中的位置是否需要移动,示例如下
+                            * 示例1：
+                            * e.hash=10：0000 1010
+                            * oldCap=16：0001 0000
+                            *	 &   =0：0000 0000       比较高位的第一位 0
+                            * 结论：元素位置在扩容后数组中的位置没有发生改变
+                            *
+                            * 示例2：
+                            * e.hash=17：0001 0001
+							* oldCap=16：0001 0000
+							*	 &   =1：0001 0000      比较高位的第一位  1
+							* 结论：元素位置在扩容后数组中的位置发生了改变，新的下标位置：原下标位置+原数组长度
+                            *
+                            */
                             if ((e.hash & oldCap) == 0) {
                                 // 此if分支只会运行一次
                                 if (loTail == null) {
@@ -792,12 +808,15 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                 hiTail = e;
                             }
                         } while ((e = next) != null);
+
                         if (loTail != null) {
                             loTail.next = null;
+                            // e.hash & oldCap) != 0的部分保留在原bucket
                             newTab[j] = loHead;
                         }
                         if (hiTail != null) {
                             hiTail.next = null;
+                            // 把(e.hash & oldCap) != 0的部分添加到新的bucket，索引为：当前索引+旧bucket容量，使用此方法有效减少了rehash的性能消耗
                             newTab[j + oldCap] = hiHead;
                         }
                     }
