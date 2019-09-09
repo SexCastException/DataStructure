@@ -696,6 +696,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * 功能：对链表数组进行初始化或者扩容，如果是扩容则重新计算旧表数据的下标并赋值新表
      *
+     * JDK8在 resize 的时候，通过巧妙的设计，减少了 rehash 的性能消耗。
+     *
      * 步骤：
      * 1、根据各个场景先对新容量（newCap）和新阈值（newThr）初始化或者重新赋值
      * 2、把新容量和新阈值更新table和threshold
@@ -768,7 +770,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         do {
                             // 循环遍历链表
                             next = e.next;
+                            // (e.hash & oldCap)：为旧bucket的索引值
                             if ((e.hash & oldCap) == 0) {
+                                // 此if分支只会运行一次
                                 if (loTail == null) {
                                     loHead = e;
                                 }
@@ -778,6 +782,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                 loTail = e;
                             }
                             else {
+                                // 此if分支只会运行一次
                                 if (hiTail == null) {
                                     hiHead = e;
                                 }
