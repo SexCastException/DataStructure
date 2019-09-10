@@ -699,7 +699,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * 步骤：
      * 1、根据各个场景先对新容量（newCap）和新阈值（newThr）初始化或者重新赋值
      * 2、把新容量和新阈值更新table和threshold
-     * 3、重新计算各个元素的下标并赋值给新表（只有扩容的时候才会走到此步骤）
+     * 3、重新计算各个元素的下标并赋值给新表（只有扩容的时候才会走到此步骤）【重点难点】
      *
      * JDK8在 resize 时候，通过原始位置加原数组长度的方法计算索引下标，减少了 rehash 的性能消耗，也为JDK8与JDK7的不同之处。
      *
@@ -793,6 +793,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                     loHead = e;
                                 }
                                 else {
+                                    // 作用：使loHead.next=e、loHead.next.next=e、loHead.next.next.next = e，....
                                     loTail.next = e;
                                 }
                                 loTail = e;
@@ -803,6 +804,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                     hiHead = e;
                                 }
                                 else {
+                                    // 作用：hiTail.next=e、hiTail.next.next=e、hiTail.next.next.next = e，....
                                     hiTail.next = e;
                                 }
                                 hiTail = e;
@@ -810,11 +812,13 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         } while ((e = next) != null);
 
                         if (loTail != null) {
+                            // loTail.next有可能指向hiHead
                             loTail.next = null;
                             // e.hash & oldCap) != 0的部分保留在原bucket
                             newTab[j] = loHead;
                         }
                         if (hiTail != null) {
+                            // hiTail.next 有可能指向loHead
                             hiTail.next = null;
                             // 把(e.hash & oldCap) != 0的部分添加到新的bucket，索引为：当前索引+旧bucket容量，使用此方法有效减少了rehash的性能消耗
                             newTab[j + oldCap] = hiHead;
@@ -827,27 +831,35 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     }
 
     /**
+     * 此方法只传个tab和hash，对tab的长度以及需要转换红黑树的bucket重新计算
+     *
      * Replaces all linked nodes in bin at index for given hash unless
      * table is too small, in which case resizes instead.
      */
     final void treeifyBin(Node<K,V>[] tab, int hash) {
         int n, index; Node<K,V> e;
-        if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
+        // 1、如果链表数组还没有初始化，则resize();
+        if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY) {
             resize();
+        }
         else if ((e = tab[index = (n - 1) & hash]) != null) {
-            TreeNode<K,V> hd = null, tl = null;
+            TreeNode<K,V> hd = null;
+            TreeNode<K,V> tl = null;
             do {
                 TreeNode<K,V> p = replacementTreeNode(e, null);
+                // 此分支只会进入一次，类似fori循环的 if (i == 0){}
                 if (tl == null)
                     hd = p;
                 else {
+                    // p与tl的前后节点双向关联
                     p.prev = tl;
                     tl.next = p;
                 }
                 tl = p;
             } while ((e = e.next) != null);
-            if ((tab[index] = hd) != null)
+            if ((tab[index] = hd) != null) {
                 hd.treeify(tab);
+            }
         }
     }
 
@@ -1867,14 +1879,17 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     // Tree bins
 
     /**
+     * TreeNode  extends  LinkedHashMap.Entry  extends  HashMap.Node
+     * TreeNode（孙） < LinkedHashMap.Entry（父） < HashMap.Node（爷）
+     *
      * Entry for Tree bins. Extends LinkedHashMap.Entry (which in turn
      * extends Node) so can be used as extension of either regular or
      * linked node.
      */
     static final class TreeNode<K,V> extends LinkedHashMap.Entry<K,V> {
-        TreeNode<K,V> parent;  // red-black tree links
-        TreeNode<K,V> left;
-        TreeNode<K,V> right;
+        TreeNode<K,V> parent;  // red-black tree links  父亲节点
+        TreeNode<K,V> left; // 左儿子
+        TreeNode<K,V> right;    // 右儿子
         TreeNode<K,V> prev;    // needed to unlink next upon deletion
         boolean red;
         TreeNode(int hash, K key, V val, Node<K,V> next) {
@@ -1882,6 +1897,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         }
 
         /**
+         * 从当前节点开始，回溯到根节点并返回
          * Returns root of tree containing this node.
          */
         final TreeNode<K,V> root() {

@@ -3191,10 +3191,10 @@ public class Arrays {
      * is greater than that of the original array.
      * The resulting array is of the class <tt>newType</tt>.
      *
-     * @param <U> the class of the objects in the original array
-     * @param <T> the class of the objects in the returned array
-     * @param original the array to be copied
-     * @param newLength the length of the copy to be returned
+     * @param <U> the class of the objects in the original array. 原始数组
+     * @param <T> the class of the objects in the returned array.
+     * @param original the array to be copied. 需要复制的数组
+     * @param newLength the length of the copy to be returned. 新的长度
      * @param newType the class of the copy to be returned
      * @return a copy of the original array, truncated or padded with nulls
      *     to obtain the specified length
@@ -3209,6 +3209,7 @@ public class Arrays {
         @SuppressWarnings("unchecked")
         T[] copy = ((Object)newType == (Object)Object[].class)
             ? (T[]) new Object[newLength]
+                // Array.newInstance底层调用native方法，返回指定的类型和长度的数组
             : (T[]) Array.newInstance(newType.getComponentType(), newLength);
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
