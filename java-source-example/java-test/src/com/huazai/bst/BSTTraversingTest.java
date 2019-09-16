@@ -73,7 +73,7 @@ public class BSTTraversingTest {
      */
     @Test
     public void testLevelRecursiveInvertTree() {
-        bstTraversing.levelRecursiveInvertTree(root, new LinkedList<>());
+        bstTraversing.levelRecursiveInvertTree(root);
         System.out.println(root);
     }
 }

@@ -3,11 +3,12 @@ package com.huazai.avl;
 import java.util.Map;
 
 public class AVLEntry<K, V> implements Map.Entry<K, V> {
-    private K key;
-    private V value;
-    AVLEntry<K, V> left;
-    AVLEntry<K, V> right;
-    AVLEntry<K, V> parent;
+    private K key;  // 键
+    private V value;    // 值
+    AVLEntry<K, V> left;    // 左子树
+    AVLEntry<K, V> right;   // 右子树
+    AVLEntry<K, V> parent;  // 父节点
+    public int height=1;    // 数的高度
 
     public AVLEntry(K key, V value) {
         this.key = key;
@@ -73,13 +74,20 @@ public class AVLEntry<K, V> implements Map.Entry<K, V> {
         this.parent = parent;
     }
 
+    public int getHeight() {
+        return height;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
+    }
+
     @Override
     public String toString() {
         return "AVLEntry{" +
                 "key=" + key +
                 ", value=" + value +
+                ", height=" + height +
                 '}';
     }
-
-
 }

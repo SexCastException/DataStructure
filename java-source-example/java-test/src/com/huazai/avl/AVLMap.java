@@ -6,8 +6,17 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
+    /**
+     *  树元素的个数
+     */
     private int size;
+    /**
+     * 数的根节点
+     */
     public AVLEntry<K, V> root;
+    /**
+     * key的比较器
+     */
     private Comparator<K> comp;
 
     public AVLMap() {
