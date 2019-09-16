@@ -120,14 +120,17 @@ public class TreeMap<K,V>
      */
     private final Comparator<? super K> comparator;
 
+    // 根节点
     private transient Entry<K,V> root;
 
     /**
+     *
      * The number of entries in the tree
      */
     private transient int size = 0;
 
     /**
+     * 树结构修改的数量
      * The number of structural modifications to the tree.
      */
     private transient int modCount = 0;
@@ -207,6 +210,8 @@ public class TreeMap<K,V>
     // Query Operations
 
     /**
+     * 返回map中映射的键值对的数量
+     *
      * Returns the number of key-value mappings in this map.
      *
      * @return the number of key-value mappings in this map
@@ -2115,18 +2120,23 @@ public class TreeMap<K,V>
     }
 
     /**
+     * 返回树最小节点（树的最左节点），如果为空树则返回null
+     *
      * Returns the first Entry in the TreeMap (according to the TreeMap's
      * key-sort function).  Returns null if the TreeMap is empty.
      */
     final Entry<K,V> getFirstEntry() {
         Entry<K,V> p = root;
         if (p != null)
-            while (p.left != null)
+            while (p.left != null) {
                 p = p.left;
+            }
         return p;
     }
 
     /**
+     * 返回树的最大节点（树的最右节点），如果为空树则返回null
+     *
      * Returns the last Entry in the TreeMap (according to the TreeMap's
      * key-sort function).  Returns null if the TreeMap is empty.
      */
@@ -2139,6 +2149,7 @@ public class TreeMap<K,V>
     }
 
     /**
+     *
      * Returns the successor of the specified Entry, or null if no such.
      */
     static <K,V> TreeMap.Entry<K,V> successor(Entry<K,V> t) {
@@ -2251,6 +2262,7 @@ public class TreeMap<K,V>
 
     /** From CLR */
     private void fixAfterInsertion(Entry<K,V> x) {
+        // 每插入一个元素，固定是红色节点
         x.color = RED;
 
         while (x != null && x != root && x.parent.color == RED) {
