@@ -371,6 +371,11 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
 
     /**
      * 右旋
+     * 思路：
+     * 1、p左孩子变成p左孩子的右孩子
+     * 2、p左孩子的右孩子变成p的父亲
+     *
+     * 如果由父亲节点还需要关联父亲节点的关系
      *
      * @param p
      * @return
@@ -386,6 +391,11 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
 
     /**
      * 左旋
+     * 思路：
+     * 1、p右孩子变成p右孩子的左孩子
+     * 2、p右孩子的左孩子变成p的父亲
+     *
+     * 如果由父亲节点还需要关联父亲节点的关系
      *
      * @param p
      * @return
@@ -490,7 +500,17 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
     }
 
     /**
-     * 删除调整
+     * AVL数的删除调整
+     *
+     * 操作：删除p的右孩子，设p的左孩子为left
+     * 情况1-1：left的平衡因子d[left]=1，将p右旋
+     * 情况2-1：left的平衡因子d[left]=0，将p右旋
+     * 情况3-1：left的平衡因子d[left]= -1，先左旋left，再右旋p
+     *
+     * 操作：删除p的左孩子，设p的右孩子为right
+     * 情况1-2：left的平衡因子d[right]=1，将p左旋
+     * 情况2-2：left的平衡因子d[right]=0，将p左旋
+     * 情况3-2：left的平衡因子d[right]= -1，先右旋right，再左旋p
      *
      * @param p
      * @return
@@ -500,17 +520,20 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
             return null;
         } else {
             p.height = Math.max(getHeight(p.left), getHeight(p.right)) + 1;
+            // d：p左右子树的平衡因子
             int d = getHeight(p.left) - getHeight(p.right);
+            // 平衡因子绝对值等于2的时候才需要调整
+            // d == 2则代表删除的是p的右子树的元素，否则删除的是p左子树的元素
             if (d == 2) {
-                if (getHeight(p.left.left) - getHeight(p.left.right) >= 0) {
+                if (getHeight(p.left.left) - getHeight(p.left.right) >= 0) {    // >= 0，可能为0也可能为1，为情况1-1和情况2-1，都需要右旋
                     p = rotateRight(p);
-                } else {
+                } else {    // 情况3-1，先左旋再右旋
                     p = firstLeftThenRight(p);
                 }
-            } else if (d == -2) {
+            } else if (d == -2) {   // >= 0，可能为0也可能为1，为情况1-2和情况2-2，都需要左旋
                 if (getHeight(p.right.right) - getHeight(p.right.left) >= 0) {
                     p = rotateLeft(p);
-                } else {
+                } else {    // 情况3-2，先右旋再左旋
                     p = firstRightThenLeft(p);
                 }
             }
