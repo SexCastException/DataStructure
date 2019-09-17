@@ -8,7 +8,7 @@ public class AVLEntry<K, V> implements Map.Entry<K, V> {
     AVLEntry<K, V> left;    // 左子树
     AVLEntry<K, V> right;   // 右子树
     AVLEntry<K, V> parent;  // 父节点
-    public int height=1;    // 数的高度
+    int height=1;    // AVL数的高度
 
     public AVLEntry(K key, V value) {
         this.key = key;

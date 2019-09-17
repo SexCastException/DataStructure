@@ -1,5 +1,7 @@
 package com.huazai.avl;
 
+import org.junit.Assert;
+
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -7,7 +9,7 @@ import java.util.Queue;
 
 public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
     /**
-     *  树元素的个数
+     * 树元素的个数
      */
     private int size;
     /**
@@ -77,6 +79,7 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
                 }
             } while (t != null);
 
+            // 程序运行到此处代表是新增元素
             AVLEntry<K, V> entry = new AVLEntry<>(key, value, parent);
             if (comRes < 0) {
                 parent.setLeft(entry);
@@ -84,6 +87,8 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
                 parent.setRight(entry);
             }
             size++;
+
+//            fixInsertion(key);
             return null;
         }
     }
@@ -202,7 +207,7 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
     /**
      * 删除节点
      * 第一种情况：p是叶子节点，直接删除
-     * 第二种情况：p只有左子树left(或右子树right)，直接用p.left替换p
+     * 第二种情况：p只有左子树left(或右子树right)，直接用p.left替换p（或用p.right替换p）
      * 第三种情况：p既有左子树left，又有右子树right，找到右子树的最小节点rightMin(需要借助于getFirstEntry，或找到left的最大节点leftMax)，用rightMin的值替换p的值，再根据以上两种情况删除rightMin
      *
      * @param p
@@ -222,6 +227,7 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
                 } else if (p.left == null && p.right != null) { // 第二种情况
                     p = p.right;
                 } else { //第三种情况
+                    // (size & 1)：随机选择一二种方案
                     if ((size & 1) == 0) {
                         AVLEntry<K, V> rightMin = getFirstEntry(p.getRight());
                         p.setKey(rightMin.getKey());
@@ -243,6 +249,8 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
                 AVLEntry<K, V> newRight = deleteEntry(p.right, key);
                 p.right = newRight;
             }
+            // 删除调整
+//            p=fixAfterDeletion(p);
             return p;
         }
     }
@@ -346,6 +354,165 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
             while (p != null && ch == p.getLeft()) {
                 ch = p;
                 p = p.getParent();
+            }
+            return p;
+        }
+    }
+
+    /**
+     * 获取AVL树的高度，如果树为空则返回0
+     *
+     * @param p
+     * @return
+     */
+    public int getHeight(AVLEntry<K, V> p) {
+        return p == null ? 0 : p.height;
+    }
+
+    /**
+     * 右旋
+     *
+     * @param p
+     * @return
+     */
+    private AVLEntry<K, V> rotateRight(AVLEntry<K, V> p) {
+        AVLEntry<K, V> left = p.left;
+        p.left = left.right;
+        left.right = p;
+        p.height = Math.max(getHeight(p.left), getHeight(p.right)) + 1;
+        left.height = Math.max(getHeight(left.left), p.height) + 1;
+        return left;
+    }
+
+    /**
+     * 左旋
+     *
+     * @param p
+     * @return
+     */
+    private AVLEntry<K, V> rotateLeft(AVLEntry<K, V> p) {
+        AVLEntry<K, V> right = p.right;
+        p.right = right.left;
+        right.left = p;
+        p.height = Math.max(getHeight(p.left), getHeight(p.right)) + 1;
+        right.height = Math.max(p.height, getHeight(right.right)) + 1;
+        return right;
+    }
+
+    /**
+     * 先左旋再右旋
+     *
+     * @param p
+     * @return
+     */
+    private AVLEntry<K, V> firstLeftThenRight(AVLEntry<K, V> p) {
+        p.left = rotateLeft(p.left);
+        p = rotateRight(p);
+        return p;
+    }
+
+    /**
+     * 先右旋再左旋
+     *
+     * @param p
+     * @return
+     */
+    private AVLEntry<K, V> firstRightThenLeft(AVLEntry<K, V> p) {
+        p.right = rotateRight(p.right);
+        p = rotateLeft(p);
+        return p;
+    }
+
+    private LinkedList<AVLEntry<K, V>> stack = new LinkedList<AVLEntry<K, V>>();
+
+    /**
+     * 插入元素后调整AVL数的平衡性
+     *
+     * @param key
+     */
+    private void fixAfterInsertion(K key) {
+        AVLEntry<K, V> p = root;
+        while (!stack.isEmpty()) {
+            p = stack.pop();
+            int newHeight = Math.max(getHeight(p.left), getHeight(p.right)) + 1;
+            if (p.height > 1 && newHeight == p.height) {
+                stack.clear();
+                return;
+            }
+            p.height = newHeight;
+            int d = getHeight(p.left) - getHeight(p.right);
+            if (Math.abs(d) <= 1) {
+                continue;
+            } else {
+                if (d == 2) {
+                    if (compare(key, p.left.getKey()) < 0) {
+                        p = rotateRight(p);
+                    } else {
+                        p = firstLeftThenRight(p);
+                    }
+                } else {
+                    if (compare(key, p.right.getKey()) > 0) {
+                        p = rotateLeft(p);
+                    } else {
+                        p = firstRightThenLeft(p);
+                    }
+                }
+                if (!stack.isEmpty()) {
+                    if (compare(key, stack.peek().getKey()) < 0) {
+                        stack.peek().left = p;
+                    } else {
+                        stack.peek().right = p;
+                    }
+                }
+            }
+        }
+        root = p;
+    }
+
+    /**
+     * 检测AVL树是否平衡，如果不平衡则抛出异常
+     */
+    public void checkBalance() {
+        postOrderCheckBalance(root);
+    }
+
+    /**
+     * 后序遍历检测AVL树是否平衡
+     *
+     * @param p
+     */
+    private void postOrderCheckBalance(AVLEntry<K, V> p) {
+        if (p != null) {
+            postOrderCheckBalance(p.left);
+            postOrderCheckBalance(p.right);
+            Assert.assertTrue(Math.abs(getHeight(p.left) - getHeight(p.right)) <= 1);
+        }
+    }
+
+    /**
+     * 删除调整
+     *
+     * @param p
+     * @return
+     */
+    public AVLEntry<K, V> fixAfterDeletion(AVLEntry<K, V> p) {
+        if (p == null) {
+            return null;
+        } else {
+            p.height = Math.max(getHeight(p.left), getHeight(p.right)) + 1;
+            int d = getHeight(p.left) - getHeight(p.right);
+            if (d == 2) {
+                if (getHeight(p.left.left) - getHeight(p.left.right) >= 0) {
+                    p = rotateRight(p);
+                } else {
+                    p = firstLeftThenRight(p);
+                }
+            } else if (d == -2) {
+                if (getHeight(p.right.right) - getHeight(p.right.left) >= 0) {
+                    p = rotateLeft(p);
+                } else {
+                    p = firstRightThenLeft(p);
+                }
             }
             return p;
         }
