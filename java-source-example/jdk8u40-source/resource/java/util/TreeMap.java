@@ -2135,6 +2135,24 @@ public class TreeMap<K,V>
     }
 
     /**
+     * @me
+     * 返回以entry为根节点的二叉树的最小节点
+     *
+     * @param entry
+     * @return
+     */
+    public static <K,V> Entry<K,V> getFirstEntry(Entry<K,V> entry) {
+        Entry<K,V> p = entry;
+        if (p != null) {
+           while (p.left != null) {
+               p = p.left;
+           }
+       }
+       return p;
+    }
+
+    /**
+     *
      * 返回树的最大节点（树的最右节点），如果为空树则返回null
      *
      * Returns the last Entry in the TreeMap (according to the TreeMap's
@@ -2149,20 +2167,44 @@ public class TreeMap<K,V>
     }
 
     /**
+     * @me
+     * 返回以entry为根节点的二叉树的最大节点
+     * @param entry
+     * @return
+     */
+    public static <K,V> Entry<K,V> getLastEntry(Entry<K,V> entry) {
+        Entry<K,V> p = entry;
+        if (p != null) {
+            while (p.right != null) {
+                p = p.right;
+            }
+        }
+        return p;
+    }
+
+    /**
+     * 返回t的后继节点（借助parent节点的解法）
+     * 情况0：t是最大节点，没有后继节点
+     * 情况1：t有右子树，返回右孩子的最小节点（getFirstEntry(t.right)）
+     * 情况2：t没有右子树，返回第一个孩子是左孩子的父节点p（即比t大的第一个节点）
      *
      * Returns the successor of the specified Entry, or null if no such.
      */
     static <K,V> TreeMap.Entry<K,V> successor(Entry<K,V> t) {
         if (t == null)
             return null;
-        else if (t.right != null) {
+        else if (t.right != null) { // 情况1
+            // 此分支可以用 getFirstEntry(t.right);代替
             Entry<K,V> p = t.right;
             while (p.left != null)
                 p = p.left;
             return p;
-        } else {
+        } else {    // 情况0和情况2
+            // 此算法解决了情况0和情况2的问题
             Entry<K,V> p = t.parent;
             Entry<K,V> ch = t;
+            // p==null，即没有后继节点，情况0
+            // ch != p.right，即第一个孩子是左孩子的父节点p，情况2
             while (p != null && ch == p.right) {
                 ch = p;
                 p = p.parent;
@@ -2172,17 +2214,66 @@ public class TreeMap<K,V>
     }
 
     /**
+     * 返回t的后继节点（不借助parent节点的解法）
+     * 情况0：t是最大节点，没有后继节点
+     * 情况1：t有右子树，返回右孩子的最小节点（getFirstEntry(t.right)）
+     * 情况2：t没有右子树，返回第一个孩子是左孩子的父节点p（即比t大的第一个节点）
+     * @param t
+     * @param root
+     * @param <K>
+     * @param <V>
+     * @return
+     */
+    static <K, V> TreeMap.Entry<K, V> successor(Entry<K, V> t, Entry<K, V> root, final Comparator<? super K> comparator) {
+        Entry<K, V> p = root;
+        if (t == null) {
+            return null;
+        }
+        // 情况0
+        if (getLastEntry(p) == t) {
+            return null;
+        }
+        // 情况1
+        if (t.right != null) {
+            return getFirstEntry(t.right);
+        }
+        // 情况2
+        Entry<K, V> temp = root;
+        Entry<K, V> parent = root;
+        while (parent != null) {
+            int compare = compare(t, root, comparator);
+            if (compare < 0) {
+                temp = parent;
+                parent = parent.left;
+            } else {
+                parent = parent.right;
+            }
+        }
+        return temp;
+    }
+
+    private static <K, V> int compare(Entry<K, V> t, Entry<K, V> root, final Comparator<? super K> comparator) {
+        return comparator != null?comparator.compare((K) t.key,(K) root.key):((Comparable<? super K>)t.key).compareTo((K)root.key);
+    }
+
+    /**
+     * 返回t的前驱节点（借助parent节点）
+     * 情况0：t是最小节点，则t没有前驱节点
+     * 情况1：t有左孩子，返回左孩子的最大节点（getLastEntry(t.left)）
+     * 情况2：t没有左孩子，返回第一个孩子是右孩子的父节点p
+     *
      * Returns the predecessor of the specified Entry, or null if no such.
      */
     static <K,V> Entry<K,V> predecessor(Entry<K,V> t) {
         if (t == null)
             return null;
-        else if (t.left != null) {
+        else if (t.left != null) {  // 情况1
+            // 以下方法可以用 getLastEntry(t.left);替代
             Entry<K,V> p = t.left;
             while (p.right != null)
                 p = p.right;
             return p;
-        } else {
+        } else {    // 情况0和情况2
             Entry<K,V> p = t.parent;
             Entry<K,V> ch = t;
             while (p != null && ch == p.left) {
@@ -2191,6 +2282,47 @@ public class TreeMap<K,V>
             }
             return p;
         }
+    }
+
+    /**
+     * 返回t的前驱节点（不借助parent节点）
+     * 情况0：t是最小节点，则t没有前驱节点
+     * 情况1：t有左孩子，返回左孩子的最大节点（getLastEntry(t.left)）
+     * 情况2：t没有左孩子，返回第一个孩子是右孩子的父节点p
+     *
+     * @param t
+     * @param root
+     * @param comparator
+     * @param <K>
+     * @param <V>
+     * @return
+     */
+    static <K, V> TreeMap.Entry<K, V> predecessor(Entry<K, V> t, Entry<K, V> root, final Comparator<? super K> comparator) {
+        Entry<K, V> p = root;
+        if (t == null) {
+            return null;
+        }
+        // 情况0
+        if (getFirstEntry(p) == t) {
+            return null;
+        }
+        // 情况1
+        if (t.left != null) {
+            return getLastEntry(t.left);
+        }
+        // 情况2
+        Entry<K, V> temp = root;
+        Entry<K, V> parent = root;
+        while (parent != null) {
+            int compare = compare(t, root, comparator);
+            if (compare < 0) {
+                parent = parent.left;
+            } else {
+                temp = parent;
+                parent = parent.right;
+            }
+        }
+        return temp;
     }
 
     /**
@@ -2204,6 +2336,7 @@ public class TreeMap<K,V>
      */
 
     private static <K,V> boolean colorOf(Entry<K,V> p) {
+        // 叶子节点是黑色的
         return (p == null ? BLACK : p.color);
     }
 

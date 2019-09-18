@@ -300,9 +300,9 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
     }
 
     /**
-     * 中序遍历查找节点t的后继节点
+     * 查找节点t的后继节点
      * 情况0：t是最大节点，没有后继节点
-     * 情况1：t没有右孩子，查找孩子是左孩子的父节点p（即比t大的第一个节点）
+     * 情况1：t没有右孩子，查找第一个孩子是左孩子的父节点p（即比t大的第一个节点）
      * 情况2：t有右孩子，查找右孩子的firstEntry（即以右孩子为根节点的最小节点）
      *
      * @param t
@@ -330,7 +330,7 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
     }
 
     /**
-     * 中序遍历查找t的前驱节点，算法和查找后继节点方法successor对称
+     * 查找t的前驱节点，算法和查找后继节点方法successor对称
      * 情况0：t是最小节点，则t没有前驱节点
      * 情况1：t没有左孩子，查找孩子是右孩子的父节点p（即比t小的第后一个节点）
      * 情况2：t有左孩子，查找左孩子的lastEntry（即以左孩子为根节点的最大节点）
