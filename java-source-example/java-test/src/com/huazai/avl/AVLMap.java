@@ -374,7 +374,7 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
      * 思路：
      * 1、p左孩子变成p左孩子的右孩子
      * 2、p左孩子的右孩子变成p的父亲
-     *
+     * <p>
      * 如果由父亲节点还需要关联父亲节点的关系
      *
      * @param p
@@ -394,7 +394,7 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
      * 思路：
      * 1、p右孩子变成p右孩子的左孩子
      * 2、p右孩子的左孩子变成p的父亲
-     *
+     * <p>
      * 如果由父亲节点还需要关联父亲节点的关系
      *
      * @param p
@@ -433,10 +433,21 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
         return p;
     }
 
+    /**
+     * stack保存了插入节点时候查找所经历的路径
+     */
     private LinkedList<AVLEntry<K, V>> stack = new LinkedList<AVLEntry<K, V>>();
 
     /**
-     * 插入元素后调整AVL数的平衡性
+     * 插入元素后调整AVL数的平衡性，插入关键字key后，节点p的平衡因子由原来的1或者-1，变成了2或者-2，则需要旋转；
+     *
+     * 插入key到左子树left的情形，即平衡因子为2
+     * 情况1-1：key<left.key, 即插入到left的左子树，需要进行单旋转，将节点p右旋
+     * 情况2-1：key>left.key, 即插入到left的右子树，需要进行双旋转，先将left左旋，再将p右旋
+     *
+     * 插入key右子树right的情形，即平衡因子为-2
+     * 情况1-2：key>right.key，即插入right的右子树，需要进行单旋转，将节点p左旋
+     * 情况2-2：key<right.key，即插入right的左子树，需要进行双旋转，先将right节点右旋，再将p左旋
      *
      * @param key
      */
@@ -445,25 +456,30 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
         while (!stack.isEmpty()) {
             p = stack.pop();
             int newHeight = Math.max(getHeight(p.left), getHeight(p.right)) + 1;
+            // 如果插入后没有引起AVL树高度的变化，则无需调整。p.height > 1，不考虑叶子节点
             if (p.height > 1 && newHeight == p.height) {
                 stack.clear();
                 return;
             }
             p.height = newHeight;
+            // 树的平衡因子
             int d = getHeight(p.left) - getHeight(p.right);
+            // 树的平衡因子绝对值不大于1，则不需要调整
             if (Math.abs(d) <= 1) {
                 continue;
             } else {
+                // 插入到了左子树
                 if (d == 2) {
-                    if (compare(key, p.left.getKey()) < 0) {
+                    if (compare(key, p.left.getKey()) < 0) {    // 情况1-1
                         p = rotateRight(p);
-                    } else {
+                    } else {    // 情况2-1
                         p = firstLeftThenRight(p);
                     }
                 } else {
-                    if (compare(key, p.right.getKey()) > 0) {
+                    // 插入到了右子树
+                    if (compare(key, p.right.getKey()) > 0) {   // 情况1-2
                         p = rotateLeft(p);
-                    } else {
+                    } else {    // 情况2-2
                         p = firstRightThenLeft(p);
                     }
                 }
@@ -501,12 +517,12 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
 
     /**
      * AVL数的删除调整
-     *
+     * <p>
      * 操作：删除p的右孩子，设p的左孩子为left
      * 情况1-1：left的平衡因子d[left]=1，将p右旋
      * 情况2-1：left的平衡因子d[left]=0，将p右旋
      * 情况3-1：left的平衡因子d[left]= -1，先左旋left，再右旋p
-     *
+     * <p>
      * 操作：删除p的左孩子，设p的右孩子为right
      * 情况1-2：left的平衡因子d[right]=1，将p左旋
      * 情况2-2：left的平衡因子d[right]=0，将p左旋
