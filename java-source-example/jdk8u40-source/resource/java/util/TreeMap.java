@@ -2500,7 +2500,7 @@ public class TreeMap<K,V>
      *
      *  P为G的右孩子，三个rightCase：
      *  rightCase1：Y为红，X可左可右；P、Y染黑，G染红，X回溯至G，下一次循环
-     *  rightCase2：Y为黑，X为左孩子；右旋P，X染P
+     *  rightCase2：Y为黑，X为左孩子；右旋P，X指向p，转为rightCase3
      *  rightCase3：Y为黑，X为右孩子；G染红，P染黑，左旋G
      *  结论：RBT的插入调整最多旋转2次
      *
