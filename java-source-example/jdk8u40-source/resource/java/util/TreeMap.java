@@ -95,6 +95,15 @@ import java.util.function.Consumer;
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
  *
+ *
+ * 1. 每个结点要么是红的，要么是黑的
+ * 2. 根结点是黑的
+ * 3. 定义NULL为黑色
+ * 4. 如果某个子结点是红色，那么它的俩个儿子都是黑色，且父节点也必定是黑色
+ * 5. 对于任一结点而言，它到叶结点的每一条路径都包含相同数目的黑色结点
+ * 性质5称为黑高、BlackHeight、BH
+ *
+ *
  * @param <K> the type of keys maintained by this map
  * @param <V> the type of mapped values
  *
@@ -2474,46 +2483,102 @@ public class TreeMap<K,V>
         }
     }
 
-    /** From CLR */
+    /**
+     * From CLR
+     *
+     *  无需调整的情况为：
+     *  1、X为根节点，将X由红染黑，简称rootOver
+     *  2、父节点P为黑色，BlackParentOver，简称bpOver
+     *
+     *  仅仅考虑父节点P（即：parentOf(x)）为红色的情形，由于性质4，爷爷节点G（即：parentOf(parentOf(x))）必定为黑色，分为三种情况：
+     *  P为G的左孩子，三个leftCase：
+     *  leftCase1：Y为红，X可左可右；P、Y染黑，G染红，X回溯至G，下一次循环
+     *  leftCase2：Y为黑，X为右孩子；左旋P，X指向P，转为leftCase3
+     *  leftCase3：Y为黑，X为左孩子；G染红、P染黑、右旋G
+     *
+     *  leftCase和rightCase是对称的
+     *
+     *  P为G的右孩子，三个rightCase：
+     *  rightCase1：Y为红，X可左可右；P、Y染黑，G染红，X回溯至G，下一次循环
+     *  rightCase2：Y为黑，X为左孩子；右旋P，X染P
+     *  rightCase3：Y为黑，X为右孩子；G染红，P染黑，左旋G
+     *  结论：RBT的插入调整最多旋转2次
+     *
+     *  调整之后：
+     *  case1：X、P、Y、G的关系均满足性质4；X的BH未改变P满足性质5；P、Y的BH同时增加了1G满足性质5；G的BH未改变整个RBT满足性质5；
+     *         G是红色，可能违反性质2、性质4，需要继续调整,case1可能转换为case1、case2或case3
+     *
+     * @param x
+     */
     private void fixAfterInsertion(Entry<K,V> x) {
-        // 每插入一个元素，固定是红色节点
+        // 每插入一个元素，规定是红色节点
+        /*
+        若插入的节点为黑色，肯定违反性质5,改变了黑高
+        只能插入红色节点，可能违反性质4，导致两个连续的节点是红色的，但可以继续调整
+         */
         x.color = RED;
-
+        // while条件排除不需要调整的情况，即rootOver和bpOver
         while (x != null && x != root && x.parent.color == RED) {
+            // 如果x的父节点是爷爷节点的左孩子
             if (parentOf(x) == leftOf(parentOf(parentOf(x)))) {
+                // y是x的叔叔节点
                 Entry<K,V> y = rightOf(parentOf(parentOf(x)));
-                if (colorOf(y) == RED) {
+                if (colorOf(y) == RED) {    // 如果叔叔节点是红色的
+                    // 将父节点设为黑色
                     setColor(parentOf(x), BLACK);
+                    // 将叔叔节点设为黑色
                     setColor(y, BLACK);
+                    // 爷爷节点设为红色
                     setColor(parentOf(parentOf(x)), RED);
+                    // x回溯到爷爷节点，进行下一次循环
                     x = parentOf(parentOf(x));
-                } else {
+                } else {    // 否则叔叔节点是黑色的
+                    // 如果x是父节点的右孩子
                     if (x == rightOf(parentOf(x))) {
+                        // x回溯至父节点
                         x = parentOf(x);
+                        // 将x进行左旋
                         rotateLeft(x);
                     }
+                    // 否则x是父节点的左孩子，此处隐含else
+                    // 将父节点设为黑色的
                     setColor(parentOf(x), BLACK);
+                    // 将爷爷节点设为红色
                     setColor(parentOf(parentOf(x)), RED);
+                    // 爷爷节点进行右旋
                     rotateRight(parentOf(parentOf(x)));
                 }
-            } else {
+            } else {    // 否则x的父节点是爷爷节点的右孩子
+                // y是x的叔叔节点
                 Entry<K,V> y = leftOf(parentOf(parentOf(x)));
-                if (colorOf(y) == RED) {
+                if (colorOf(y) == RED) {    // 如果叔叔节点是红色的
+                    // 将父节点设为黑色
                     setColor(parentOf(x), BLACK);
+                    // 将叔叔节点设为黑色
                     setColor(y, BLACK);
+                    // 将爷爷节点设为红色
                     setColor(parentOf(parentOf(x)), RED);
+                    // x回溯至爷爷节点，进行下一次循环
                     x = parentOf(parentOf(x));
-                } else {
+                } else {    // 否则叔叔节点是黑色的
+                    // 如果x是父节点的左孩子
                     if (x == leftOf(parentOf(x))) {
+                        // 将x回溯至父节点
                         x = parentOf(x);
+                        // 将x进行右旋
                         rotateRight(x);
                     }
+                    // 否则x是父节点的右孩子，此处隐含else
+                    // 将父节点设为黑色
                     setColor(parentOf(x), BLACK);
+                    // 将爷爷节点设为红色
                     setColor(parentOf(parentOf(x)), RED);
+                    // 将爷爷节点进行左旋
                     rotateLeft(parentOf(parentOf(x)));
                 }
             }
         }
+        // 将根节点设为黑色
         root.color = BLACK;
     }
 
