@@ -2490,7 +2490,7 @@ public class TreeMap<K,V>
      *  1、X为根节点，将X由红染黑，简称rootOver
      *  2、父节点P为黑色，BlackParentOver，简称bpOver
      *
-     *  仅仅考虑父节点P（即：parentOf(x)）为红色的情形，由于性质4，爷爷节点G（即：parentOf(parentOf(x))）必定为黑色，分为三种情况：
+     *  只需要考虑父节点P（即：parentOf(x)）为红色的情形，由于性质4，爷爷节点G（即：parentOf(parentOf(x))）必定为黑色，分为三种情况：
      *  P为G的左孩子，三个leftCase：
      *  leftCase1：Y为红，X可左可右；P、Y染黑，G染红，X回溯至G，下一次循环
      *  leftCase2：Y为黑，X为右孩子；左旋P，X指向P，转为leftCase3
