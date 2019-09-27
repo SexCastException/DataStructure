@@ -2591,6 +2591,8 @@ public class TreeMap<K,V>
 
         // If strictly internal, copy successor's element to p and then make p
         // point to successor.
+        // 后继节点替换当前待删除p的key和value
+        // p指向后继节点
         if (p.left != null && p.right != null) {
             Entry<K,V> s = successor(p);
             p.key = s.key;
@@ -2601,6 +2603,7 @@ public class TreeMap<K,V>
         // Start fixup at replacement node, if it exists.
         Entry<K,V> replacement = (p.left != null ? p.left : p.right);
 
+        // 表示p至少有一个孩子
         if (replacement != null) {
             // Link replacement to parent
             replacement.parent = p.parent;
@@ -2620,6 +2623,7 @@ public class TreeMap<K,V>
         } else if (p.parent == null) { // return if we are the only node.
             root = null;
         } else { //  No children. Use self as phantom replacement and unlink.
+            // replacement没有左右孩子
             if (p.color == BLACK)
                 fixAfterDeletion(p);
 
