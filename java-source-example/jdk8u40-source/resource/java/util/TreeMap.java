@@ -2584,7 +2584,14 @@ public class TreeMap<K,V>
     }
 
     /**
+     * 删除节点p并调整树的平衡性
      * Delete node p, and then rebalance the tree.
+     *
+     * 删除节点
+     * case1：p是叶子节点，直接删除
+     * case2：p只有左子树left(或右子树right)，直接用p.left替换p（或用p.right替换p）
+     * case3：p既有左子树left，又有右子树right，找到右子树的最小节点rightMin(需要借助于getFirstEntry，即p的后继节点)，
+     *            用rightMin的值替换p的值，删除rightMin
      */
     private void deleteEntry(Entry<K,V> p) {
         modCount++;
@@ -2592,21 +2599,24 @@ public class TreeMap<K,V>
 
         // If strictly internal, copy successor's element to p and then make p
         // point to successor.
-        // 后继节点替换当前待删除p的key和value
+        // case3：后继节点替换当前待删除p的key和value
         // p指向后继节点
         if (p.left != null && p.right != null) {
             Entry<K,V> s = successor(p);
             p.key = s.key;
             p.value = s.value;
+            // p指向后继节点s
             p = s;
         } // p has 2 children
 
         // Start fixup at replacement node, if it exists.
+        // if是case3的情况，replacement为p后继节点的左孩子或者右孩子，否则replacement为待删除节点p的左孩子或者右孩子
         Entry<K,V> replacement = (p.left != null ? p.left : p.right);
 
-        // 表示p至少有一个孩子
+        // 表示当前p至少有一个孩子
         if (replacement != null) {
             // Link replacement to parent
+            // 删除p之前，让p的孩子replacement变成p父亲的孩子，即代替父亲p的位置
             replacement.parent = p.parent;
             if (p.parent == null)
                 root = replacement;
@@ -2616,23 +2626,30 @@ public class TreeMap<K,V>
                 p.parent.right = replacement;
 
             // Null out links so they are OK to use by fixAfterDeletion.
+            // 删除p节点
             p.left = p.right = p.parent = null;
 
             // Fix replacement
+            // p节点删除后，影响黑高，需要调整，此情况，先删除p，再调整replacement
             if (p.color == BLACK)
                 fixAfterDeletion(replacement);
         } else if (p.parent == null) { // return if we are the only node.
+            // 如果p是根节点且p都没有左右孩子的情况，即整个红黑树只有根节点，此情况只有在p的左右孩子至少有一个为空的时候发生，即p不指向后继节点s
+            // 直接删除根节点，无需调整
             root = null;
         } else { //  No children. Use self as phantom replacement and unlink.
-            // replacement没有左右孩子
-            if (p.color == BLACK)
+            // p没有左右孩子，直接调整但删除节点p，如果p是黑色的，此情况，先调整p，在删除p
+            if (p.color == BLACK) {
+                // 调整p
                 fixAfterDeletion(p);
-
+            }
+            // 删除p
             if (p.parent != null) {
                 if (p == p.parent.left)
                     p.parent.left = null;
-                else if (p == p.parent.right)
+                else if (p == p.parent.right) {
                     p.parent.right = null;
+                }
                 p.parent = null;
             }
         }
