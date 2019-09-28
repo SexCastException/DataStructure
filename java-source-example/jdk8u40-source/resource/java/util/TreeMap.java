@@ -2637,22 +2637,65 @@ public class TreeMap<K,V>
         }
     }
 
-    /** From CLR */
+    /**
+     * From CLR
+     *
+     * 红黑树删除无需调整的情况为：
+     * 当前X为根节点，无论root什么颜色，都将root染黑，rootOver
+     * 当前X为红色，将X染黑，结束，redOver
+     *
+     * leftCase1: S为红色；S染黑，P染红【S和P交换颜色】，左旋P，S回溯至P的右孩子【重新定义x的兄弟节点】（隐含条件，P、LN和RN必定是黑色的）
+     * leftCase2-1: S为黑色，黑LN，黑RN，黑P；S染红，X回溯至P
+     * leftCase2-2: S为黑色，黑LN，黑RN，红P；S染红，X回溯至P，p染黑，redOver
+     * leftCase3: S为黑色，红LN，黑RN；LN染黑，S染红，右旋S（三角型）
+     * leftCase4-1: 黑S，红LN，红RN；S以父为名【S染成P的颜色，然后S旋转变成P】，P和RN染黑，左旋P（直线型）
+     * leftCase4-2: 黑S，黑LN，红RN；S以父为名【S染成P的颜色，然后S旋转变成P】，P和RN染黑，左旋P（直线型）
+     *
+     * 对称操作：
+     *
+     * rightCase1: S为红色；S染黑，P染红【S和P交换颜色】，右旋P，S回溯至P的左孩子【重新定义x的兄弟节点】（隐含条件，LN和RN必定是黑色的）
+     * rightCase2-1: S为黑色，黑LN，黑RN，黑P；S染红，X回溯至P
+     * rightCase2-2: S为黑色，黑LN，黑RN，红P；S染红，X回溯至P，p染黑，redOver
+     * rightCase3: S为黑色，红RN，黑LN；RN染黑，S染红，左旋S（三角型）
+     * rightCase4-1: 黑S，红LN，红RN；S以父为名【S染成P的颜色，然后S旋转变成P】，P和LN染黑，右旋P（直线型）
+     * rightCase4-2: 黑S，红LN，黑RN；S以父为名【S染成P的颜色，然后S旋转变成P】，P和LN染黑，右旋P（直线型）
+     *
+     *
+     * 结论：
+     * case2-1会引起整个红黑树的黑高减1
+     *
+     * 理解：case1：S为红色的，P、LN和RN必定为黑色的，向X的方向旋转，让某一个侄子变成X的孩子，补充X分支的黑高
+     *       case2-1：删除X后，X的黑高比S的分支少1，为了让X和S两兄弟的黑高相等，S染红，但以P为根节点的红黑树比整个红黑树黑高少1，通过X向上回溯，把整个红黑树的黑高都减1来解决
+     *       case2-2：删除X后，X的黑高比S的分支少1，为了让X和S两兄弟的黑高相等，S染红，此时P为红色的，把P染黑色，以P为根节点的所有黑高都加1，redOver完美解决
+     *       case3：leftCase3的情况，P和LN两个红色节点（或者rightCase3的情况，P和RN两个红色节点）构成了三角形，通过相应的操作（即染色和旋转，不会违反性质4和性质5）转换成case4情况
+     *       case4：leftCase4的情况，P和RN两个红色【LN可红可黑】节点（或者rightCase4的情况，P和LN两个红色【RN可红可黑】节点）构成了直线，
+     *              把直线的两个端点染黑，S染红，向X方向进行旋转，弥补X黑高少1的情况，S染成父亲的颜色
+     */
     private void fixAfterDeletion(Entry<K,V> x) {
+        // while剔除不需要调整的条件，即redOver和rootOver
         while (x != root && colorOf(x) == BLACK) {
+            // 如果x为父亲的左孩子
             if (x == leftOf(parentOf(x))) {
+                // x的兄弟节点
                 Entry<K,V> sib = rightOf(parentOf(x));
-
-                if (colorOf(sib) == RED) {
+                // 如果兄弟节点是红色的
+                if (colorOf(sib) == RED) {  // S和P交换颜色
+                    // 将兄弟节点染为黑色
                     setColor(sib, BLACK);
+                    // 将父亲节点染为红色
                     setColor(parentOf(x), RED);
+                    // 父亲节点左旋
                     rotateLeft(parentOf(x));
+                    // 兄弟节点回溯至父亲节点的右孩子
                     sib = rightOf(parentOf(x));
                 }
 
+                // 如果x的左侄子和右侄子都是黑色的
                 if (colorOf(leftOf(sib))  == BLACK &&
                     colorOf(rightOf(sib)) == BLACK) {
+                    // 将兄弟节点染为红色
                     setColor(sib, RED);
+                    // x回溯至父亲节点
                     x = parentOf(x);
                 } else {
                     if (colorOf(rightOf(sib)) == BLACK) {
@@ -2667,13 +2710,19 @@ public class TreeMap<K,V>
                     rotateLeft(parentOf(x));
                     x = root;
                 }
-            } else { // symmetric
-                Entry<K,V> sib = leftOf(parentOf(x));
+            } else { // symmetric 否则x为父亲的右孩子
 
+                // x的兄弟节点
+                Entry<K,V> sib = leftOf(parentOf(x));
+                // 兄弟节点为红色的情况
                 if (colorOf(sib) == RED) {
+                    // 兄弟节点染黑
                     setColor(sib, BLACK);
+                    // 父亲节点染红
                     setColor(parentOf(x), RED);
+                    // 父亲节点右旋
                     rotateRight(parentOf(x));
+                    // 兄弟节点回溯至父亲节点的左孩子
                     sib = leftOf(parentOf(x));
                 }
 
