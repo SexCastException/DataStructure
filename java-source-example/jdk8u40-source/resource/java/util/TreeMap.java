@@ -1115,6 +1115,9 @@ public class TreeMap<K,V>
 
     // View class support
 
+    /**
+     * 为操作value提供迭代器操作
+     */
     class Values extends AbstractCollection<V> {
         public Iterator<V> iterator() {
             return new ValueIterator(getFirstEntry());
