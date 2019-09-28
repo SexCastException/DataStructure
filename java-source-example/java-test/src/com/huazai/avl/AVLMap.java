@@ -208,7 +208,8 @@ public class AVLMap<K, V> implements Iterable<AVLEntry<K, V>> {
      * 删除节点
      * 第一种情况：p是叶子节点，直接删除
      * 第二种情况：p只有左子树left(或右子树right)，直接用p.left替换p（或用p.right替换p）
-     * 第三种情况：p既有左子树left，又有右子树right，找到右子树的最小节点rightMin(需要借助于getFirstEntry，即p的后继节点，或找到left的最大节点leftMax，即p的前驱节点)，用rightMin的值替换p的值，再根据以上两种情况删除rightMin
+     * 第三种情况：p既有左子树left，又有右子树right，找到右子树的最小节点rightMin(需要借助于getFirstEntry，即p的后继节点，或找到left的最大节点leftMax，即p的前驱节点)，
+     *            用rightMin（leftMax）的值替换p的值，删除rightMin（leftMax）
      *
      * @param p
      * @param key
